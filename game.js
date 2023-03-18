@@ -85,7 +85,7 @@ module.exports = class Game {
 
     whosTheBoss(userList, userCard) {
         for(var u of userList) {
-            let cards = userCard.get(u);
+            let cards = userCard[u];
             let r1 = new Result(cards);
             let win = 0;
             
@@ -94,7 +94,7 @@ module.exports = class Game {
                 if(u == u2) {
                     continue;
                 }
-                let cards2 = userCard.get(u2);
+                let cards2 = userCard[u2];
                 let r2 = new Result(cards2);
                 r2.calc();
 
@@ -106,6 +106,7 @@ module.exports = class Game {
                 return u;
             }
         }
+        return 0;
     }
 
 
