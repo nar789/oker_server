@@ -138,4 +138,36 @@ io.on('connection', (socket) => {
 
 server.listen(3000, () => {
   console.log('tomato poker server listening on *:3000');
+
+
+          //test
+          const Card = require('./card')().Card;
+          const Result = require('./result');
+          let c = [];
+          c.push(new Card("S", 13));
+          c.push(new Card("S", 12));
+          c.push(new Card("C", 13));
+          c.push(new Card("H", 12));
+          c.push(new Card("S", 11));
+          c.push(new Card("S", 10));
+          c.push(new Card("S", 1));
+          let r = new Result(c);
+
+          let c2 = [];
+          c2.push(new Card("H", 13));
+          c2.push(new Card("S", 12));
+          c2.push(new Card("C", 13));
+          c2.push(new Card("H", 12));
+          c2.push(new Card("H", 11));
+          c2.push(new Card("H", 10));
+          c2.push(new Card("H", 1));
+          let r2 = new Result(c2);
+          console.log(r2.calc());
+          
+          const isRsf = r.calc();
+          console.log("isRsf = ");
+          console.log(isRsf);
+          const isWin = r.compare(r2);
+          console.log('is win ' + isWin);
+
 });

@@ -1,7 +1,6 @@
 
 
 module.exports = () => {
-    console.log("card load success :)");
 
     let cards = [];
 

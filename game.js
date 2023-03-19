@@ -77,6 +77,7 @@ module.exports = class Game {
         //betting??
         
         
+        
         if(this.turn == 7) {
             this.gameOver(io, userList, userCard);
         }
@@ -110,7 +111,11 @@ module.exports = class Game {
     }
 
 
-    betting() {
+    //sevenTurn에서 호출하는 베팅 차례결정하는 메소드와
+    //index.js에서 클라로부터 받는 베팅정보 리스트에 관한 메소드 분리가 필요함
+    betting(userId) {
+        // 1. userId가 다른 사람과 똑같이 냈는지 콜 할게 있는지 판단 있으면 베팅 emit
+
         //usreList 누구가 어떤 베팅을 했는지
         //betting 정보 업데이트 
         //각자 베팅금액이 같은지 아니면 누구차례고 어떤베팅상태인지 전달

@@ -5,7 +5,7 @@ module.exports = class Result {
 
 
     constructor(cards) {
-        this.cards = JSON.parse(JSON.stringify(cards));
+        this.cards = JSON.parse(JSON.stringify(cards)); //copy
         this.result = {};
     }
 
@@ -26,36 +26,23 @@ module.exports = class Result {
     }
 
     compareShape(a, b) {
-        if(this.shapeToInt(a) > this.shapeToInt(b)) return 1;
+        if(this.shapeToInt(a) > this.shapeToInt(b)) return -1;
         if(this.shapeToInt(a) == this.shapeToInt(b)) return 0;
-        if(this.shapeToInt(a) < this.shapeToInt(b)) return -1;
+        if(this.shapeToInt(a) < this.shapeToInt(b)) return 1;
     }
 
     sortCards() {
         this.cards.sort((a,b)=> {
             let n1 = a.number == 1 ? 14 : a.number;
             let n2 = b.number == 1 ? 14 : b.number;
-            if(n1 > n2) return 1;
+            if(n1 > n2) return -1;
             if(n1 == n2) {
                 return this.compareShape(a.shape, b.shape);
             }
-            if(n1 < n2) return -1;
+            if(n1 < n2) return 1;
         });
     }
 
-    isAllSameShape() {
-        let s = this.cards[0].shape;
-        for(var c of this.cards) {
-            if(s != c.shape) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    isMountine() {
-
-    }
 
     isBackSt() {
 
@@ -81,16 +68,114 @@ module.exports = class Result {
 
     }
 
+    isRsf() {
+        let mountine = [1, 10, 11, 12, 13];
+        let mn = [0, 0, 0, 0, 0];
+        let ms = [0, 0, 0, 0];
+        
+        for(var c of this.cards) {
+            for(var mi=0;mi<mountine.length;mi++) {
+                if(mountine[mi] == c.number) {
+                    mn[mi]+=1;
+                    if(c.shape == 'S') ms[3]+=1;
+                    else if(c.shape == 'D') ms[2]+=1;
+                    else if(c.shape == 'H') ms[1]+=1;
+                    else if(c.shape == 'C') ms[0]+=1;
+                }
+            }
+        }
+
+        for(var mi=0;mi<mountine.length;mi++) {
+            if(mn[mi] == 0) {
+                return null;
+            }
+        }
+        for(var i=0;i<4;i++) {
+            if(ms[i] >= 5) {
+
+                let shape = '';
+                if(i == 3) {
+                    shape = 'S';
+                } else if(i == 2) {
+                    shape = 'D';
+                } else if(i == 1) {
+                    shape = 'H';
+                } else if(i == 0) {
+                    shape = 'C';
+                }
+
+                for(var c of this.cards) {
+                    c.isShow = false;
+                    for(var j=0;j<mountine.length;j++) {
+                        if(c.number == mountine[j] && c.shape == shape) {
+                            c.isShow = true;
+                        }
+                    }
+                }
+
+                this.result = {
+                    madeLevel : 1,
+                    madeExtra : i + 1, //S = 4, D = 3, H= 2, C = 1
+                }
+                return this.result;
+            }
+        }
+        return null;
+    }
+
+    isSf() {
+        
+    }
+
 
     calc() {
         this.sortCards();
-        console.log("cards : " + JSON.stringify(this.cards));
+
+        const isRsf = this.isRsf();
+        
+        if(isRsf != null) {
+            return isRsf;
+        }
+
+
+
+        
+            
+            //is moutine
+              //is same shae -> rsf
+              //else mountine
+
+            //is st
+              //is bst -> level / extra/ 
+              //is same shape -> sf
+              //else bst
+              //else st
+            
+            // is all same shape -> fl
+
+            // fc
+
+         
+
+            
+        
+            //fc
+            //t
+            //2f
+            //1f
+            //top
+        
+
+
 
         //if rsf  allSameShape && 10JQKA(isMountine)
          // extra 로티플 무늬 첫번째 아이템 무늬
+         // showList는 isMountine참고
+        
 
         //sf    (isBackSt() || isSt()) && allSameShape()
           //extra 탑 우선 > 무늬 :  가장 큰 수 오른쪽 > 제일 앞 아이템 무늬
+          
 
         //fc    isFourCard()
           //extra 숫자 높은거  제일 앞 아이템 숫자
@@ -125,14 +210,30 @@ module.exports = class Result {
 
 
           // TODO: resultList를 어떻게 결정할지 정하고 >> betting 정해야함
+          // game.js <-> index.html  서버와 클라의 데이터 흐름 정의하면 좋을듯 시퀀스로
 
         //this.result = { madeLevel="", madeExtra="", resultList, }
         //madeExtra는 같은 메이드끼리 비교를 위한 추가 정보 정의가 필요함
         //result List는 isShow로 다섯장추린 거 보스 체크 시에는 필요없고, 카드 개수 파악해서 7장일때만 처리하면됨
+        //resultList를 showList로 이름 변경
     }
 
 
     compare(target)  {
+        if(target.result.madeLevel > this.result.madeLevel) {
+            return true;
+        } else if(target.result.madeLevel < this.result.madeLevel) {
+            return false;
+        } else {
+            if(this.result.madeLevel == 1) {
+                if(this.result.madeExtra > target.result.madeExtra) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+            //todo : add else if cases
+        }
         // this.result VS target.result  if win ? true : false
     }
 }
