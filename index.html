@@ -45,6 +45,15 @@
             <u id="user3">user3</u><u id="cards3"></u><br>
             <u id="user4">user4</u><u id="cards4"></u><br>
             <u id="my">내 카드들</u><u id="my-cards"></u>
+            <hr>
+        </div>
+        <div>
+            <button onclick="betting()">따당</button>
+            <button onclick="betting()">삥</button>
+            <button onclick="betting()">쿼터</button>
+            <button onclick="betting()">콜</button>
+            <button onclick="betting()">하프</button>
+            <button onclick="betting()">다이</button>
         </div>
 
         <script src="/assets/js/jquery.min.js"></script>
@@ -273,6 +282,14 @@
                     cards : cards
                 });
                 
+            }
+
+            function betting() {
+                let type = 0;
+                socket.emit('betting', {
+                    userId:myId,
+                    type:type
+                });
             }
         </script>
     </body>

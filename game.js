@@ -44,13 +44,16 @@ module.exports = class Game {
 
         //GIVE
         let userCard2 = {};
+        let userCard3 = {};
         for(var u of userList) {
             this.userCard.get(u).push(this.cards.openPop());
             userCard2[u] = [];
+            userCard3[u] = [];
             for(var c of this.userCard.get(u)) {
                 if(c.isShow) {
                     userCard2[u].push(c);
                 }
+                userCard3[u].push(c);
             }
             
             io.to(u).emit('give_my_card_info', {
@@ -65,7 +68,6 @@ module.exports = class Game {
         
 
         //BOSS
-        //isShow true기준으로 누가 보스인지 체크해서 보내기
         let bossId = this.whosTheBoss(userList, userCard2);
         console.log("boss is " + bossId);
         io.sockets.in(roomId).emit('boss', {
@@ -74,12 +76,14 @@ module.exports = class Game {
         console.log('BOSS END');
 
         
-        //betting??
+        //BETTING
+        //updateBettingInfo()
         
         
         
-        if(this.turn == 7) {
-            this.gameOver(io, userList, userCard);
+        //if(this.turn == 7) {
+        if(this.turn == 5) {
+            this.gameOver(io, userList, userCard3);
         }
     }
 
@@ -110,21 +114,63 @@ module.exports = class Game {
         return 0;
     }
 
+    updateBettingInfo(io, roomId, currentUserId, userList) {
+        //역할 : 베팅정보 업데이트 / 누가 베팅 차례인지 브로드캐스트 / 베팅 금액 같으면 세븐턴 
 
-    //sevenTurn에서 호출하는 베팅 차례결정하는 메소드와
-    //index.js에서 클라로부터 받는 베팅정보 리스트에 관한 메소드 분리가 필요함
-    betting(userId) {
-        // 1. userId가 다른 사람과 똑같이 냈는지 콜 할게 있는지 판단 있으면 베팅 emit
+        //callList : 유저별 베팅한 금액 
+        //max call
+        //betCntList : 유저별 베팅 가능 횟수 0이면 콜앤 다이밖에 할 수 없다.
 
-        //usreList 누구가 어떤 베팅을 했는지
-        //betting 정보 업데이트 
-        //각자 베팅금액이 같은지 아니면 누구차례고 어떤베팅상태인지 전달
+        //콜리스트가 전부 같은 금액이고 일곱번째 턴 베팅이 아니면 this.sevenTurn()
+        //전부 같은 금액이고 this.turn == 7이며 ㄴ게임오버
+        //else  베팅info를 브로드캐스트  //io.sockets.in(roomId).emit  bettingInfo
+
+
+        //클라이언트에서는 bettingInfo받아서 / 베팅 버튼 활성화
+
+        
         //BettingInfo (누구차례인지 각자 콜값들, 총 베팅금액 / 금방베팅한금액 / 어떤베팅이가능한지 상태)
-        //베팅금액이 전부 같으면 sevenTurn()
+
+    }
+
+    
+
+    //누가 어떤 베팅을 했다 브로드캐스트 & updateBiettingInfo 다음 유저
+    betting(io, roomId, userList, userId, type) {
+        //클라로 받은 베팅 정보
+        //베팅 한 정보 브로드캐스트 
+        //다시 베팅 정보 업데이트 updateBettingInfo()
     }
 
     gameOver(io, userList, userCard) {
 
+        
+        let winner;
+        for(var u of userList) {
+            let cards = userCard[u];
+            let r1 = new Result(cards);
+            let win = 0;
+            
+            r1.calc();
+            for(var u2 of userList) {
+                if(u == u2) {
+                    continue;
+                }
+                let cards2 = userCard[u2];
+                let r2 = new Result(cards2);
+                r2.calc();
+
+                if(r1.compare(r2)) {
+                    win += 1;
+                }
+            }
+            if(win == userCard.size - 1) {
+                winner = u;
+            }
+        }
+        
+
+        console.log(`winner is ${u}`);
         //userCard 로 calc() 해서  resultList를 만들고, winner찾은 다음에 emit용 json만들어서 room으로 emit()
         //io.sockets.in(roomId).emit resultList & winnerUserId
 

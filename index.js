@@ -113,6 +113,16 @@ io.on('connection', (socket) => {
 
   });
 
+  socket.on("betting", ({userId, type}) => {
+    if(socket.rooms.size < 2) {
+        return;
+    }
+    let roomId = Array.from(socket.rooms)[1];
+    let users = io.sockets.adapter.rooms.get(roomId);
+    game.get(roomId).betting(io, roomId, Array.from(users), userId, type);
+
+  });
+
 
 
   socket.on('disconnecting', ()=>{

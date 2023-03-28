@@ -662,6 +662,7 @@ module.exports = class Result {
 
     compare(target)  {
         console.log(`my level : ${this.result.madeLevel} / target level : ${target.result.madeLevel}`);
+        console.log(`my extra : ${this.result.madeExtra} / target extra : ${target.result.madeExtra}`);
         if(target.result.madeLevel > this.result.madeLevel) {
             return true;
         } else if(target.result.madeLevel < this.result.madeLevel) {
