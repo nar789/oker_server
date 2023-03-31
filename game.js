@@ -77,12 +77,11 @@ module.exports = class Game {
 
         
         //BETTING
-        //updateBettingInfo()
+        updateBettingInfo(io, roomId, bossId, userList);
         
         
         
-        //if(this.turn == 7) {
-        if(this.turn == 5) {
+        if(this.turn == 7) {
             this.gameOver(io, userList, userCard3);
         }
     }
@@ -115,6 +114,16 @@ module.exports = class Game {
     }
 
     updateBettingInfo(io, roomId, currentUserId, userList) {
+
+        let nextUserId;
+        for(var i=0;i<userList.length;i++) {
+            if(userList[i] == currentUserId) {
+                let nextIdx = i + 1 == userList.length ? 0 : i + 1; 
+                nextUserId = userList[nextIdx];
+                break;
+            }
+        }
+
         //역할 : 베팅정보 업데이트 / 누가 베팅 차례인지 브로드캐스트 / 베팅 금액 같으면 세븐턴 
 
         //callList : 유저별 베팅한 금액 
@@ -133,7 +142,7 @@ module.exports = class Game {
 
     }
 
-    
+
 
     //누가 어떤 베팅을 했다 브로드캐스트 & updateBiettingInfo 다음 유저
     betting(io, roomId, userList, userId, type) {
