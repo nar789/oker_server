@@ -47,13 +47,26 @@
             <u id="my">내 카드들</u><u id="my-cards"></u>
             <hr>
         </div>
+        <div id="betting_box" style="display : none;">
+            <button id="btn1" onclick="betting('die')">다이</button>
+            <button id="btn2" onclick="betting('bing')">삥</button>
+            <button id="btn3" onclick="betting('double')">따당</button>
+            <button id="btn4" onclick="betting('call')">콜</button>
+            <button id="btn5" onclick="betting('quater')">쿼터</button>
+            <button id="btn6" onclick="betting('half')">하프</button>
+            <hr>
+        </div>
         <div>
-            <button onclick="betting()">따당</button>
-            <button onclick="betting()">삥</button>
-            <button onclick="betting()">쿼터</button>
-            <button onclick="betting()">콜</button>
-            <button onclick="betting()">하프</button>
-            <button onclick="betting()">다이</button>
+            턴 : <div id="turn"></div>
+            누구차례 : <div id="currentUserId"></div>
+            콜 : <div id="mycall"></div>
+            팟 : <div id="pot"></div>
+            <hr>
+        </div>
+        <div>
+            <u>마지막베팅정보</u><br>
+            누가: <div id="bet_user_id"></div>
+            얼마: <div id="bet_price"></div>
         </div>
 
         <script src="/assets/js/jquery.min.js"></script>
@@ -66,6 +79,7 @@
             let choiceOpenId = -1;
             let choiceCards;
             let myMoney = 100000000;
+            let currentId = '';
 
             function choiceSel(idx) {
                 choiceOpenId = idx;
@@ -222,10 +236,57 @@
             socket.on('boss', ({bossId}) => {
 
                 console.log("boss id is " + bossId);
+                currentId = bossId;
 
             });
 
-            //betting_status  //각 user들 call값들, 금방 베팅한 값들
+            socket.on('bettingInfo', ({currentUserId, userId, userList,
+                 nextUserId, pot, maxCall, callList, betPrice, isBettingFinish, turn, canNextUserBetting}) => {
+
+                    console.log('=========');
+                    console.log(`currentUserId ${currentUserId}  userId ${userId}  nextUserId ${nextUserId}`);
+                    console.log(`pot ${pot}  maxCall ${maxCall}  betPrice ${betPrice}  isBettingFinish ${isBettingFinish}`);
+                    console.log('=========');
+
+                    console.log(callList);
+                    let myCall = parseInt(maxCall) - callList[myId]; 
+                    console.log('mycall = ' + myCall);
+                    $('#mycall').html(myCall);
+                    $('#pot').html(pot);
+                    $('#betting_box').css('display', 'none');
+                    $('#turn').html(turn);
+                    if(currentUserId != null) {
+                        $('#currentUserId').html(currentUserId);
+                        if(currentUserId == myId) {
+                            $('#betting_box').css('display', 'block');
+                        }
+                        return;
+                    }
+
+                    if(nextUserId == myId) {
+                        $('#betting_box').css('display', 'block');
+                        if(canNextUserBetting) {
+                            for(var i=1;i<=6;i++) {
+                                $('#btn' + i).css('display', 'inline-block');
+                            }
+                        } else {
+                            for(var i=1;i<=6;i++) {
+                                $('#btn' + i).css('display', 'none');
+                            }
+                            $('#btn1').css('display', 'inline-block');
+                            $('#btn4').css('display', 'inline-block');
+                        }
+                    }
+
+                    $('#bet_user_id').html(userId);
+                    $('#bet_price').html(betPrice);
+            });
+
+            socket.on('betting', ({userId, type}) => {
+
+                console.log(`userId ${userId}   type ${type}`);
+
+            });
 
         </script>
         <script>
@@ -284,8 +345,7 @@
                 
             }
 
-            function betting() {
-                let type = 0;
+            function betting(type) {
                 socket.emit('betting', {
                     userId:myId,
                     type:type

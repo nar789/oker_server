@@ -7,6 +7,13 @@ module.exports = class Game {
         this.cards = require('./card')();
         this.userCard = new Map();
         this.turn = 3;
+        this.betList = {};
+        this.callList = {};
+        this.betCntList = {};
+        this.maxCall = 0;
+        this.pot = 0;
+        this.defaultPrice = 100;
+        this.defaultCount = 1;
     }
 
     choice(io, roomId, socketId, cards, userList) {
@@ -29,7 +36,14 @@ module.exports = class Game {
         this.cards.init();
         this.cards.suffle();
 
+        this.maxCall = 0;
+
         for(var u of userList) {
+
+            this.pot += this.defaultPrice;
+            this.betList[u] = this.defaultPrice;
+            this.callList[u] = 0;
+            this.betCntList[u] = this.defaultCount;
 
             let choiceCard = this.cards.choice();
             io.to(u).emit("choice", {
@@ -39,21 +53,29 @@ module.exports = class Game {
     }
 
     sevenTurn(io, roomId, userList) {
+        if(this.turn == 7) {
+            let userCard3 = {};
+            for(var u of userList) {
+                userCard3[u] = [];
+                for(var c of this.userCard.get(u)) {
+                    userCard3[u].push(c);
+                }
+            }
+            this.gameOver(io, userList, userCard3);
+            return;
+        }
         this.turn += 1;
         console.log("sevenTurn(), turn = " + this.turn);
 
         //GIVE
         let userCard2 = {};
-        let userCard3 = {};
         for(var u of userList) {
             this.userCard.get(u).push(this.cards.openPop());
             userCard2[u] = [];
-            userCard3[u] = [];
             for(var c of this.userCard.get(u)) {
                 if(c.isShow) {
                     userCard2[u].push(c);
                 }
-                userCard3[u].push(c);
             }
             
             io.to(u).emit('give_my_card_info', {
@@ -77,13 +99,7 @@ module.exports = class Game {
 
         
         //BETTING
-        updateBettingInfo(io, roomId, bossId, userList);
-        
-        
-        
-        if(this.turn == 7) {
-            this.gameOver(io, userList, userCard3);
-        }
+        this.updateBettingInfo(io, roomId, bossId, userList, null, null);
     }
 
 
@@ -106,14 +122,27 @@ module.exports = class Game {
                     win += 1;
                 }
             }
-            if(win == userCard.size - 1) {
+            
+            if(win == userList.length - 1) {
                 return u;
             }
         }
         return 0;
     }
 
-    updateBettingInfo(io, roomId, currentUserId, userList) {
+    updateBettingInfo(io, roomId, currentUserId, userList, userId, type) {
+
+        if(userId == null && type == null) { //턴 처음 / 보스 턴 알릴때
+            io.sockets.in(roomId).emit('bettingInfo', {
+                currentUserId : currentUserId,
+                userList : userList,
+                pot : this.pot,
+                maxCall : this.maxCall,
+                callList : this.callList, 
+                turn : this.turn,
+            });
+            return;
+        }
 
         let nextUserId;
         for(var i=0;i<userList.length;i++) {
@@ -124,31 +153,101 @@ module.exports = class Game {
             }
         }
 
-        //역할 : 베팅정보 업데이트 / 누가 베팅 차례인지 브로드캐스트 / 베팅 금액 같으면 세븐턴 
+        let myCall = this.maxCall - this.callList[userId];
 
-        //callList : 유저별 베팅한 금액 
-        //max call
-        //betCntList : 유저별 베팅 가능 횟수 0이면 콜앤 다이밖에 할 수 없다.
+        let betPrice = this.calcBet(userId, userList, type, myCall);
 
-        //콜리스트가 전부 같은 금액이고 일곱번째 턴 베팅이 아니면 this.sevenTurn()
-        //전부 같은 금액이고 this.turn == 7이며 ㄴ게임오버
-        //else  베팅info를 브로드캐스트  //io.sockets.in(roomId).emit  bettingInfo
+        let isBettingFinish = this.isBettingFinish(userList);
 
+        let canNextUserBetting = this.betCntList[nextUserId] != 0; 
 
-        //클라이언트에서는 bettingInfo받아서 / 베팅 버튼 활성화
+        io.sockets.in(roomId).emit('bettingInfo', {
+            userList : userList,
+            nextUserId : nextUserId,
+            pot : this.pot,
+            maxCall : this.maxCall, 
+            callList : this.callList,
+            userId : userId, 
+            betPrice : betPrice,
+            isBettingFinish : isBettingFinish, 
+            turn : this.turn,
+            canNextUserBetting : canNextUserBetting
+        }); 
 
-        
-        //BettingInfo (누구차례인지 각자 콜값들, 총 베팅금액 / 금방베팅한금액 / 어떤베팅이가능한지 상태)
+        if(isBettingFinish) {
+            this.maxCall = 0;
+            for(var u of userList) {
+                this.callList[u] = 0;
+                this.betCntList[u] = this.defaultCount;
+            }
+            this.sevenTurn(io, roomId, userList);
+        } else {
+            this.updateBettingInfo(io, roomId, nextUserId, userList, null, null);
+        }
 
     }
 
 
+    isBettingFinish(userList) {
+        if(this.maxCall == 0) {
+            return false;
+        }
+        for(var u of userList) {
+            if(this.callList[u] < 0) {
+                continue;
+            }
+            if(this.callList[u] != this.maxCall) {
+                return false;
+            }
+        }
+        return true;
+    }
 
-    //누가 어떤 베팅을 했다 브로드캐스트 & updateBiettingInfo 다음 유저
+
+    calcBet(userId, userList, type, myCall) {
+
+        let prevUserId = '';
+        for(var i =0;i<userList.length;i++) {
+            if(userList[i] == userId) {
+                let idx = i == 0 ? userList.length - 1 : i-1;
+                prevUserId = userList[idx];
+                break;
+            }
+        }
+        
+        if(type == 'call') {
+            this.callList[userId] += myCall;
+        } else if(type == 'die') {
+            this.callList[userId] = -1;
+        } else if(type == 'half') {
+            this.callList[userId] += myCall + (this.pot + myCall) * 0.5;
+        } else if(type == 'quater') {
+            this.callList[userId] += myCall + (this.pot + myCall) * 0.25;
+        } else if(type == 'double') {
+            this.callList[userId] += this.callList[prevUserId] * 2;
+        } else if(type == 'bing') {
+            this.callList[userId] += this.defaultPrice;
+        }
+
+        this.betList[userId] += this.callList[userId];
+
+        if(this.maxCall < this.callList[userId]) {
+            this.maxCall = this.callList[userId];
+        }
+
+        this.pot += this.callList[userId];
+        this.betCntList[userId] -= 1;
+
+        return this.callList[userId]; //bet price
+    }
+
     betting(io, roomId, userList, userId, type) {
-        //클라로 받은 베팅 정보
-        //베팅 한 정보 브로드캐스트 
-        //다시 베팅 정보 업데이트 updateBettingInfo()
+        io.sockets.in(roomId).emit('betting', {
+            userId : userId,
+            type : type
+        });
+
+        this.updateBettingInfo(io, roomId, userId, userList, userId, type);
     }
 
     gameOver(io, userList, userCard) {
@@ -173,13 +272,14 @@ module.exports = class Game {
                     win += 1;
                 }
             }
-            if(win == userCard.size - 1) {
+            console.log(`winnner info : user ${u}  win ${win}  userlist len  ${userList.length}`);
+            if(win == userList.length - 1) {
                 winner = u;
             }
         }
         
 
-        console.log(`winner is ${u}`);
+        console.log(`winner is ${winner}`);
         //userCard 로 calc() 해서  resultList를 만들고, winner찾은 다음에 emit용 json만들어서 room으로 emit()
         //io.sockets.in(roomId).emit resultList & winnerUserId
 
