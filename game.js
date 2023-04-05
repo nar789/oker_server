@@ -193,8 +193,12 @@ module.exports = class Game {
             return false;
         }
         for(var u of userList) {
+            console.log(`${u} bet cnt ${this.betCntList[u]}  call ${this.callList[u]} / max call ${this.maxCall}`)
             if(this.callList[u] < 0) {
                 continue;
+            }
+            if(this.betCntList[u] > 0) {
+                return false;
             }
             if(this.callList[u] != this.maxCall) {
                 return false;

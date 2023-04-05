@@ -259,6 +259,9 @@
                         $('#currentUserId').html(currentUserId);
                         if(currentUserId == myId) {
                             $('#betting_box').css('display', 'block');
+                            for(var i=1;i<=6;i++) {
+                                $('#btn' + i).css('display', 'inline-block');
+                            }
                         }
                         return;
                     }
