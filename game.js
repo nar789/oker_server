@@ -61,7 +61,7 @@ module.exports = class Game {
                     userCard3[u].push(c);
                 }
             }
-            this.gameOver(io, userList, userCard3);
+            this.gameOver(io, roomId, userList, userCard3);
             return;
         }
         this.turn += 1;
@@ -105,12 +105,19 @@ module.exports = class Game {
 
     whosTheBoss(userList, userCard) {
         for(var u of userList) {
+            if(this.callList[u] < 0) {
+                continue;
+            }
             let cards = userCard[u];
             let r1 = new Result(cards);
             let win = 0;
             
             r1.calc();
             for(var u2 of userList) {
+                if(this.callList[u2] < 0) {
+                    win += 1;
+                    continue;
+                }
                 if(u == u2) {
                     continue;
                 }
@@ -132,7 +139,7 @@ module.exports = class Game {
 
     updateBettingInfo(io, roomId, currentUserId, userList, userId, type) {
 
-        if(userId == null && type == null) { //턴 처음 / 보스 턴 알릴때
+        if(userId == null && type == null) { // 누구 차례일 때 / 베팅 창 표시 시
             io.sockets.in(roomId).emit('bettingInfo', {
                 currentUserId : currentUserId,
                 userList : userList,
@@ -140,45 +147,41 @@ module.exports = class Game {
                 maxCall : this.maxCall,
                 callList : this.callList, 
                 turn : this.turn,
+                hasBetCnt : this.betCntList[currentUserId] != 0
             });
             return;
-        }
-
-        let nextUserId;
-        for(var i=0;i<userList.length;i++) {
-            if(userList[i] == currentUserId) {
-                let nextIdx = i + 1 == userList.length ? 0 : i + 1; 
-                nextUserId = userList[nextIdx];
-                break;
-            }
         }
 
         let myCall = this.maxCall - this.callList[userId];
 
         let betPrice = this.calcBet(userId, userList, type, myCall);
 
-        let isBettingFinish = this.isBettingFinish(userList);
+        let nextUserId = this.findNextUserId(userList, currentUserId);
+        console.log('next user id = ' + nextUserId);
 
-        let canNextUserBetting = this.betCntList[nextUserId] != 0; 
-
-        io.sockets.in(roomId).emit('bettingInfo', {
+        io.sockets.in(roomId).emit('bettingInfo', { // 누가 베팅했을 때, 베팅 정보 표시 시
+            userId : userId, 
             userList : userList,
-            nextUserId : nextUserId,
             pot : this.pot,
             maxCall : this.maxCall, 
             callList : this.callList,
-            userId : userId, 
             betPrice : betPrice,
-            isBettingFinish : isBettingFinish, 
             turn : this.turn,
-            canNextUserBetting : canNextUserBetting
         }); 
 
-        if(isBettingFinish) {
+        if(nextUserId == null) {
             this.maxCall = 0;
+            let dieCnt = 0;
             for(var u of userList) {
-                this.callList[u] = 0;
-                this.betCntList[u] = this.defaultCount;
+                if(this.callList[u] >= 0) {
+                    this.callList[u] = 0;
+                    this.betCntList[u] = this.defaultCount;
+                } else {
+                    dieCnt += 1;
+                }
+            }
+            if(dieCnt >= userList.length - 1) {
+                this.turn = 7;
             }
             this.sevenTurn(io, roomId, userList);
         } else {
@@ -188,23 +191,35 @@ module.exports = class Game {
     }
 
 
-    isBettingFinish(userList) {
+    findNextUserId(userList, currentUserId) {
         if(this.maxCall == 0) {
-            return false;
+            return null;
         }
-        for(var u of userList) {
-            console.log(`${u} bet cnt ${this.betCntList[u]}  call ${this.callList[u]} / max call ${this.maxCall}`)
-            if(this.callList[u] < 0) {
+        let idx = 0;
+        for(var i=0;i<userList.length;i++) {
+            if(userList[i] == currentUserId) {
+                idx = i;
+                break;
+            }
+        }
+        
+        for(let cnt = 0; cnt<userList.length; cnt++) {
+            idx += 1;
+            if(idx == userList.length) {
+                idx = 0;
+            }
+            let u = userList[idx];
+            if(this.callList[u] < 0) { //die case
                 continue;
             }
+
             if(this.betCntList[u] > 0) {
-                return false;
-            }
-            if(this.callList[u] != this.maxCall) {
-                return false;
+                return u;
+            } else if(this.betCntList[u] == 0 && this.callList[u] != this.maxCall) {
+                return u;
             }
         }
-        return true;
+        return null;
     }
 
 
@@ -224,9 +239,9 @@ module.exports = class Game {
         } else if(type == 'die') {
             this.callList[userId] = -1;
         } else if(type == 'half') {
-            this.callList[userId] += myCall + (this.pot + myCall) * 0.5;
+            this.callList[userId] += myCall + Math.round((this.pot + myCall) * 0.5);
         } else if(type == 'quater') {
-            this.callList[userId] += myCall + (this.pot + myCall) * 0.25;
+            this.callList[userId] += myCall + Math.round((this.pot + myCall) * 0.25);
         } else if(type == 'double') {
             this.callList[userId] += this.callList[prevUserId] * 2;
         } else if(type == 'bing') {
@@ -254,17 +269,24 @@ module.exports = class Game {
         this.updateBettingInfo(io, roomId, userId, userList, userId, type);
     }
 
-    gameOver(io, userList, userCard) {
-
+    gameOver(io, roomId, userList, userCard) {
+        console.log("game over!!!");
         
         let winner;
         for(var u of userList) {
+            if(this.callList[u] < 0) {
+                continue;
+            }
             let cards = userCard[u];
             let r1 = new Result(cards);
             let win = 0;
             
             r1.calc();
             for(var u2 of userList) {
+                if(this.callList[u2] < 0) {
+                    win += 1;
+                    continue;
+                }
                 if(u == u2) {
                     continue;
                 }
@@ -284,6 +306,11 @@ module.exports = class Game {
         
 
         console.log(`winner is ${winner}`);
+        io.sockets.in(roomId).emit('gameover', {
+            userList : userList, 
+            userCard : userCard,
+            winner : winner
+        });
         //userCard 로 calc() 해서  resultList를 만들고, winner찾은 다음에 emit용 json만들어서 room으로 emit()
         //io.sockets.in(roomId).emit resultList & winnerUserId
 

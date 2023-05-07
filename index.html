@@ -13,7 +13,7 @@
         </div>
         <div>
             룸ID
-            <input type="number" id="room_id" placeholder="룸번호를 입력해주세요." />
+            <input type="number" id="room_id" placeholder="룸번호를 입력해주세요." value="123" />
             <Button id="room_create_btn">접속</Button>
             <Button id="room_leave_btn">나가기</Button>
         </div>
@@ -68,6 +68,13 @@
             누가: <div id="bet_user_id"></div>
             얼마: <div id="bet_price"></div>
         </div>
+        <hr>
+        <div>
+            <u>게임결과</u><br>
+            위너: <div id="winner"></div>
+            초기화 <button id="init">초기화</button>
+        </div>
+        <hr>
 
         <script src="/assets/js/jquery.min.js"></script>
         <script src="/socket.io/socket.io.js"></script>
@@ -199,7 +206,7 @@
 
             //choice
             socket.on("choice", ({cards}) => {
-
+                init();
                 console.log("choice cards ");
                 console.log(cards);
                 choiceCards = cards;
@@ -240,14 +247,12 @@
 
             });
 
-            socket.on('bettingInfo', ({currentUserId, userId, userList,
-                 nextUserId, pot, maxCall, callList, betPrice, isBettingFinish, turn, canNextUserBetting}) => {
+            socket.on('bettingInfo', ({currentUserId, userId, userList, pot, maxCall, callList, betPrice, turn, hasBetCnt}) => {
 
                     console.log('=========');
-                    console.log(`currentUserId ${currentUserId}  userId ${userId}  nextUserId ${nextUserId}`);
-                    console.log(`pot ${pot}  maxCall ${maxCall}  betPrice ${betPrice}  isBettingFinish ${isBettingFinish}`);
+                    console.log(`currentUserId ${currentUserId}  userId ${userId}`);
+                    console.log(`pot ${pot}  maxCall ${maxCall}  betPrice ${betPrice}`);
                     console.log('=========');
-
                     console.log(callList);
                     let myCall = parseInt(maxCall) - callList[myId]; 
                     console.log('mycall = ' + myCall);
@@ -259,26 +264,19 @@
                         $('#currentUserId').html(currentUserId);
                         if(currentUserId == myId) {
                             $('#betting_box').css('display', 'block');
-                            for(var i=1;i<=6;i++) {
-                                $('#btn' + i).css('display', 'inline-block');
+                            if(hasBetCnt) {
+                                for(var i=1;i<=6;i++) {
+                                    $('#btn' + i).css('display', 'inline-block');
+                                }
+                            } else {
+                                for(var i=1;i<=6;i++) {
+                                    $('#btn' + i).css('display', 'none');
+                                }
+                                $('#btn1').css('display', 'inline-block');
+                                $('#btn4').css('display', 'inline-block');
                             }
                         }
                         return;
-                    }
-
-                    if(nextUserId == myId) {
-                        $('#betting_box').css('display', 'block');
-                        if(canNextUserBetting) {
-                            for(var i=1;i<=6;i++) {
-                                $('#btn' + i).css('display', 'inline-block');
-                            }
-                        } else {
-                            for(var i=1;i<=6;i++) {
-                                $('#btn' + i).css('display', 'none');
-                            }
-                            $('#btn1').css('display', 'inline-block');
-                            $('#btn4').css('display', 'inline-block');
-                        }
                     }
 
                     $('#bet_user_id').html(userId);
@@ -289,6 +287,14 @@
 
                 console.log(`userId ${userId}   type ${type}`);
 
+            });
+
+
+            socket.on('gameover', ({userList, userCard, winner}) => {
+
+                console.log('winner is ' + winner);
+                console.log(userCard);
+                $('#winner').html(winner);
             });
 
         </script>
@@ -320,13 +326,17 @@
             });
 
             $("#game_start_btn").click(()=> {
-
+                init();
                 if(myId != null && userList != null && userList.length > 1) {
                     socket.emit("game_start");
                 } else {
                     alert("can't start yet.");
                 }
 
+            });
+
+            $("#init").click(() => {
+                init();   
             });
 
             function choiceSend() {
@@ -353,6 +363,25 @@
                     userId:myId,
                     type:type
                 });
+            }
+
+            function init() {
+                for(var i=0;i<4;i++) {
+                    $('#choice' + i).html("");
+                }
+                $('#choiceResult').html("");
+                $('#my-cards').html("");
+                for(var i=1;i<=4;i++) {
+                    $('#cards' + i).html("");
+                }
+                $('#mycall').html("");
+                $('#pot').html("");
+                $('#betting_box').css('display', 'none');
+                $('#turn').html("");
+                $('#currentUserId').html("");
+                $('#bet_user_id').html("");
+                $('#bet_price').html("");
+                $('#winner').html("");
             }
         </script>
     </body>
