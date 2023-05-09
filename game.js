@@ -78,8 +78,12 @@ module.exports = class Game {
                 }
             }
             
+            let myResult = new Result(this.userCard.get(u));
+            let myCalcResult = myResult.calc();
+            let myLevel = myCalcResult.madeLevel;
             io.to(u).emit('give_my_card_info', {
-                cards : this.userCard.get(u)
+                cards : this.userCard.get(u),
+                level : myLevel
             });
         }
         io.sockets.in(roomId).emit('give_user_card_info', {
@@ -167,6 +171,7 @@ module.exports = class Game {
             callList : this.callList,
             betPrice : betPrice,
             turn : this.turn,
+            type: type
         }); 
 
         if(nextUserId == null) {

@@ -9,22 +9,16 @@ const Game = require('./game');
 
 app.use('/assets',express.static(__dirname + '/assets'));
 
-
-
 let game = new Map();
-//callInfo[]  // call info table => call box value / current bet amount
 
 
-//TEST START
-//let g = new Game();
-//g.init();
-//g.start(io, null, ["a"]);
-
-//TEST END
+app.get('/dev', (req, res) => {
+  res.sendFile(__dirname + '/index.html');
+});
 
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+  res.sendFile(__dirname + '/index2.html');
 });
 
 io.on('connection', (socket) => {
@@ -117,6 +111,7 @@ io.on('connection', (socket) => {
     if(socket.rooms.size < 2) {
         return;
     }
+    console.log('betting ' + userId + ", type " + type)
     let roomId = Array.from(socket.rooms)[1];
     let users = io.sockets.adapter.rooms.get(roomId);
     game.get(roomId).betting(io, roomId, Array.from(users), userId, type);
@@ -149,35 +144,4 @@ io.on('connection', (socket) => {
 server.listen(3000, () => {
   console.log('tomato poker server listening on *:3000');
 
-
-          //test
-          const Card = require('./card')().Card;
-          const Result = require('./result');
-          let c = [];
-          c.push(new Card("D", 6));
-          c.push(new Card("S", 8));
-          c.push(new Card("C", 11));
-          c.push(new Card("H", 5));
-          c.push(new Card("D", 7));
-          c.push(new Card("C", 1));
-          c.push(new Card("C", 10));
-          let r = new Result(c);
-          let calc = r.calc();
-          console.log(r.cards);
-          console.log(calc);
-
-          
-          let c2 = [];
-          c2.push(new Card("H", 10));
-          c2.push(new Card("D", 7));
-          c2.push(new Card("H", 4));
-          c2.push(new Card("C", 3));
-          c2.push(new Card("C", 2));
-          c2.push(new Card("D", 1));
-          c2.push(new Card("D", 9));
-          let r2 = new Result(c2);
-          console.log(r2.calc());
-          
-          const isWin = r.compare(r2);
-          console.log('is win ' + isWin);
 });
