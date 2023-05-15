@@ -9,22 +9,25 @@
     </head>
     <body onload="init()">    
         
-        <div style="background-color: gray; position: absolute; top:0px; ">
-            <div>
-                내 ID
-                <u id="my_id"></u><br>
-                <hr>
-            </div>
-            <div>
-                룸ID
-                <input type="number" id="room_id" placeholder="룸번호를 입력해주세요." value="123" />
-                <Button id="room_create_btn">접속</Button>
-                <Button id="room_leave_btn">나가기</Button>
-            </div>
-        </div>
+       
 
 
         <div id=content class="content">
+            <div style="background-color: gray; position: absolute; top:0px; z-index: 99; width:500px; left:1421px;">
+                <div style="color:white;">관리 콘솔</div>
+                <div style="color:white;">기본 베팅 금액은 game.js > defaultPrice 에 기재되어 있습니다.</div>
+                <div>
+                    내 ID
+                    <u id="my_id"></u><br>
+                    <hr>
+                </div>
+                <div>
+                    룸ID
+                    <input type="number" id="room_id" placeholder="룸번호를 입력해주세요." value="123" />
+                    <Button id="room_create_btn" style="display: inline-block;">접속</Button>
+                    <Button id="room_leave_btn" style="display: inline-block;">나가기</Button>
+                </div>
+            </div>
 
             
             <div id="dark" style="background-color: black; width:1920px; height:1080px; z-index: 98; position:absolute; top:0px; left:0px; opacity: 0.7; display: none;"></div>
@@ -157,17 +160,17 @@
     
             <div style="width:500px; height:300px; position:absolute; top:750px; left:1370px;border-radius: 10px; color:white;" id="betting_box">
                 <div style="width:200px; height:100px; background-color: #a33b0a; color:white; border-radius: 20px;
-                font-size: 50px;line-height: 100px; text-align: center; display: inline-block;" onclick="betting('double')" id="btn6">따당</div>
+                font-size: 50px;line-height: 100px; text-align: center; display: inline-block;" onclick="betting('double', 6)" id="btn6">따당</div>
                 <div style="width:200px; height:100px; background-color: #96023f; color:white; border-radius: 20px;
-                font-size: 50px;line-height: 100px; text-align: center; display: inline-block;" onclick="betting('bing')" id="btn5">삥</div>
+                font-size: 50px;line-height: 100px; text-align: center; display: inline-block;" onclick="betting('bing', 5)" id="btn5">삥</div>
                 <div style="width:200px; height:100px; background-color: #880000; color:white; border-radius: 20px;
-                font-size: 50px;line-height: 100px; text-align: center; display: inline-block;" onclick="betting('quater')" id="btn3">쿼터</div>
+                font-size: 50px;line-height: 100px; text-align: center; display: inline-block;" onclick="betting('quater', 3)" id="btn3">쿼터</div>
                 <div style="width:200px; height:100px; background-color: #ffffff; color:black; border-radius: 20px;
-                font-size: 50px;line-height: 100px; text-align: center; display: inline-block;" onclick="betting('call')" id="btn1">콜</div>
+                font-size: 50px;line-height: 100px; text-align: center; display: inline-block;" onclick="betting('call', 1)" id="btn1">콜</div>
                 <div style="width:200px; height:100px; background-color: #000000; color:white; border-radius: 20px;
-                font-size: 50px;line-height: 100px; text-align: center; display: inline-block;" onclick="betting('half')" id="btn2">하프</div>
+                font-size: 50px;line-height: 100px; text-align: center; display: inline-block;" onclick="betting('half', 2)" id="btn2">하프</div>
                 <div style="width:200px; height:100px; background-color: #4d3e00; color:white; border-radius: 20px;
-                font-size: 50px;line-height: 100px; text-align: center; display: inline-block;" onclick="betting('die')" id="btn4">다이</div>
+                font-size: 50px;line-height: 100px; text-align: center; display: inline-block;" onclick="betting('die', 4)" id="btn4">다이</div>
                 
             </div>
         </div>
@@ -193,7 +196,7 @@
                     choiceRemoveId = -1;
                     oname = getCardName(choiceCards[choiceOpenId]);
                     rname = "";
-                } else if(choiceOpenId != -1 && choiceRemoveId == -1) {
+                } else if(choiceOpenId != -1 && choiceRemoveId == -1 && idx - 1 != choiceOpenId) {
                     choiceRemoveId = idx - 1;
                     rname = getCardName(choiceCards[choiceRemoveId]);
                 }
@@ -552,6 +555,9 @@
                                 for(var i=1;i<=6;i++) {
                                     $('#btn' + i).css('display', 'inline-block');
                                 }
+                                if(myCall == 0) {
+                                    $('#btn1').css('display', 'none');
+                                }
                             } else {
                                 for(var i=1;i<=6;i++) {
                                     $('#btn' + i).css('display', 'none');
@@ -668,6 +674,11 @@
 
             function choiceSend() {
 
+                if(choiceOpenId == -1 || choiceRemoveId == -1) {
+                    alert("please choice cards."); 
+                    return;
+                }
+
                 $("#choice-box").css('display', 'none');
                 $("#choice-box-waiting").css('display', 'block');
 
@@ -685,10 +696,15 @@
                 socket.emit("choice", {
                     cards : cards
                 });
+
+                choiceOpenId = choiceRemoveId = -1;
+                rname = oname = "";
+                let info = `오픈카드 : ${oname} / 버릴카드 : ${rname}`;
+                $('#c-info').html(info);
                 
             }
 
-            function betting(type) {
+            function betting(type, idx) {
                 if(currentId != myId) {
                     console.log('not my turn.');
                     return;
