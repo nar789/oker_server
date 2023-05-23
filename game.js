@@ -70,7 +70,9 @@ module.exports = class Game {
         //GIVE
         let userCard2 = {};
         for(var u of userList) {
-            this.userCard.get(u).push(this.cards.openPop());
+            if(this.callList[u] >= 0) { //died user has to skip to give
+                this.userCard.get(u).push(this.cards.openPop());
+            }
             userCard2[u] = [];
             for(var c of this.userCard.get(u)) {
                 if(c.isShow) {
